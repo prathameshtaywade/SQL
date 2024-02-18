@@ -1,0 +1,53 @@
+use CompanyInfo
+select distinct bs.[DocumentId], bs.[CompanyId], bs.[SegmentName], gr.DomicileCountry from [dbo].[Company_BusinessSegmentation] as bs 
+join [dbo].[CompanyPrioritiesMaster] as cp on cp.[CompanyId]=bs.[CompanyId]
+join [dbo].[GlobalReference] as gr on gr.[CompanyId] = bs.[CompanyId]
+join [dbo].[WorkQ] as wq on wq.[CompanyId] = bs.[CompanyId]
+where DomicileCountry = ''
+where SegmentName = 'Single segment'
+and [EventStatus] = 1
+and [EventType] = 24
+and [EventType]<> 25
+and [AssignedDAId] is null
+and bs.IsDelete = 0
+and wq.[AdditionalInfo] = 'Amend'
+and SegmentName <> 'Grand Total'
+and bs.MstarGlobal is Null
+order by [CompanyId]
+
+
+select distinct bs.[DocumentId], bs.[CompanyId], bs.[SegmentName]from 
+[dbo].[Company_BusinessSegmentation] as bs 
+join [dbo].[WorkQ] as wq on wq.[CompanyId] = bs.[CompanyId]
+where SegmentName = 'Single segment'
+and wq.[EventStatus] = 1
+and wq.[EventType] = 24
+and wq.[EventType]<> 25
+and [AssignedDAId] is null
+
+select bs.[DocumentId], bs.[CompanyId],bs.MstarGlobal from 
+[dbo].[Company_BusinessSegmentation] as bs 
+join [dbo].[WorkQ] as wq on wq.[DocumentId] = bs.[DocumentId]
+where wq.[EventType] = 25
+and MstarGlobal is null
+and IsDelete = 0
+and SegmentName <> 'Grand Total'
+and ReviewedDate between GETDATE()-60 and GETDATE()
+
+select * from [dbo].[Company_BusinessSegmentation]
+where [DocumentId] = '421850209'
+
+
+
+select CONCAT (bs.[CompanyId], SegmentName) as Segment, bs.CompanyId, bs.[DocumentId], bs.SegmentName, 
+mg.IndustryName as MstarGlobal, ad.ActivityName as SubIndustry, ac.Name as Updated_By,
+cast(bs.[UpdationDate] as date) as Updated_Date
+from [dbo].[Company_BusinessSegmentation] as bs
+left join [dbo].[Account] as ac on ac.[UserId]= bs.[UpdatedBy]
+left join [dbo].[MorningstarGlobalIndustry] as mg on mg.[IndustryCode]=bs.MstarGlobal
+left join [dbo].[ActivityDetails] as ad on ad.ActivityID = bs.SubIndustry
+Where bs.IsDelete = '0'
+and SegmentName<> 'Grand Total'
+and SegmentName = 'Single Segment'
+and cast(bs.[UpdationDate] as date) >= '09/01/2023'
+and Not Exists (Select DocumentId from WorkQ as wq1 where wq1.DocumentId = bs.DocumentId and wq1.CompanyId = bs.CompanyId and wq1.EventType = 24 and wq1.EventStatus = 1)
